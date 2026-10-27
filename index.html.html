@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Rekod Stok Seksyen Parasitologi</title>
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-emerald-800 text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 py-3.5 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-emerald-700 flex items-center justify-center text-emerald-200">
+          <i class="fa-solid fa-microscope text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-lg md:text-xl font-bold tracking-tight">Sistem Stok Seksyen Parasitologi</h1>
+          <p class="text-xs text-emerald-200">Makmal Perubatan & Diagnostik</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button onclick="exportToCSV()" class="bg-emerald-700 hover:bg-emerald-600 border border-emerald-600 px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-file-excel text-emerald-300"></i> Muat Turun CSV
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Kandungan Utama -->
+  <main class="max-w-7xl mx-auto px-4 py-6">
+
+    <!-- KPI Kad Ringkasan -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Bil. Jenis Item</p>
+          <h3 id="stat-total-items" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+        </div>
+        <div class="w-11 h-11 bg-emerald-50 text-emerald-700 rounded-lg flex items-center justify-center text-xl">
+          <i class="fa-solid fa-boxes-stacked"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Bawah Paras Minima</p>
+          <h3 id="stat-low-stock" class="text-2xl font-bold text-amber-600 mt-1">0</h3>
+        </div>
+        <div class="w-11 h-11 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center text-xl">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Hampir / Telah Luput</p>
+          <h3 id="stat-near-expiry" class="text-2xl font-bold text-rose-600 mt-1">0</h3>
+        </div>
+        <div class="w-11 h-11 bg-rose-50 text-rose-600 rounded-lg flex items-center justify-center text-xl">
+          <i class="fa-solid fa-calendar-xmark"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Baki Stok Keseluruhan</p>
+          <h3 id="stat-total-stock-count" class="text-2xl font-bold text-emerald-800 mt-1">0 unit</h3>
+        </div>
+        <div class="w-11 h-11 bg-teal-50 text-teal-700 rounded-lg flex items-center justify-center text-xl">
+          <i class="fa-solid fa-calculator"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bar Kawalan, Carian & Butang Daftar -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-col md:flex-row gap-3 justify-between items-center">
+      <div class="flex-1 w-full flex flex-col sm:flex-row gap-2">
+        <div class="relative flex-1">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-sm"></i>
+          <input type="text" id="searchInput" onkeyup="filterInventory()" placeholder="Cari nama item, no lot, lokasi..." class="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600">
+        </div>
+        <select id="filterCategory" onchange="filterInventory()" class="text-sm border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600">
+          <option value="">Semua Kategori</option>
+          <option value="Pewarna (Stains)">Pewarna (Stains)</option>
+          <option value="Fiksasi / Kimia">Fiksasi / Kimia</option>
+          <option value="Kit Pantas (RDT)">Kit Pantas (RDT)</option>
+          <option value="Konsumabel">Konsumabel / Kaca</option>
+        </select>
+      </div>
+      <div class="w-full md:w-auto flex gap-2">
+        <button onclick="openModal()" class="w-full sm:w-auto bg-emerald-700 hover:bg-emerald-800 text-white font-medium px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition shadow">
+          <i class="fa-solid fa-plus"></i> Tambah Item Baru
+        </button>
+      </div>
+    </div>
+
+    <!-- Jadual Inventori Parasitologi -->
+    <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-700 border-collapse">
+          <thead class="bg-slate-100 text-slate-800 text-xs uppercase font-semibold border-b border-slate-200">
+            <tr>
+              <th class="py-3 px-4">Nama Item / Reagen</th>
+              <th class="py-3 px-4">Kategori & Lot</th>
+              <th class="py-3 px-4">Tarikh Masuk</th>
+              <th class="py-3 px-4 text-center">Jumlah Masuk</th>
+              <th class="py-3 px-4 text-center">Jumlah Keluar</th>
+              <th class="py-3 px-4 text-center">Baki Stok</th>
+              <th class="py-3 px-4">Tarikh Keluar Terkini</th>
+              <th class="py-3 px-4">Tarikh Luput</th>
+              <th class="py-3 px-4 text-center">Tindakan</th>
+            </tr>
+          </thead>
+          <tbody id="inventoryTableBody" class="divide-y divide-slate-200">
+            <!-- Data dimasukkan secara automatik -->
+          </tbody>
+        </table>
+      </div>
+      <div id="noDataFound" class="hidden p-8 text-center text-slate-400">
+        <i class="fa-solid fa-box-archive text-4xl mb-2 text-slate-300"></i>
+        <p>Tiada rekod stok ditemui.</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Tambah Item Baru -->
+  <div id="stockModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden">
+      <div class="bg-emerald-800 text-white px-6 py-4 flex justify-between items-center">
+        <h3 class="font-bold text-base flex items-center gap-2">
+          <i class="fa-solid fa-vial-circle-check"></i> Daftar Stok Reagen Parasitologi
+        </h3>
+        <button onclick="closeModal()" class="text-emerald-200 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <form id="stockForm" onsubmit="saveStock(event)" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Reagen / Item *</label>
+          <input type="text" id="itemName" required placeholder="Cth: Giemsa Stain Solution 1L / 10% Formalin" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 outline-none">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Kategori *</label>
+            <select id="itemCategory" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-600 outline-none">
+              <option value="Pewarna (Stains)">Pewarna (Stains)</option>
+              <option value="Fiksasi / Kimia">Fiksasi / Kimia</option>
+              <option value="Kit Pantas (RDT)">Kit Pantas (RDT)</option>
+              <option value="Konsumabel">Konsumabel / Kaca</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Nombor Lot (Lot No.) *</label>
+            <input type="text" id="itemLot" required placeholder="Cth: LOT-GM2026A" class="w-full px-3 py-2 border rounded-lg text-sm font-mono focus:ring-2 focus:ring-emerald-600 outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Tarikh Masuk *</label>
+            <input type="date" id="itemDateIn" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Jumlah Stok Masuk *</label>
+            <input type="number" id="itemQtyIn" min="1" required placeholder="0" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Paras Minima Alert *</label>
+            <input type="number" id="itemMinThreshold" min="1" required value="2" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Tarikh Luput *</label>
+            <input type="date" id="itemExpiry" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Lokasi Simpanan / Rak</label>
+            <input type="text" id="itemLocation" placeholder="Cth: Almari Gelap Pewarnaan / Rak 2" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Catatan / Penerima</label>
+          <input type="text" id="itemRemarks" placeholder="Cth: Diterima daripada Stor Utama (JTMP Farid)" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 outline-none">
+        </div>
+
+        <div class="pt-3 border-t flex justify-end gap-2">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium hover:bg-slate-100 transition">Batal</button>
+          <button type="submit" class="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-sm font-medium shadow transition">Daftar Stok</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Pengeluaran Stok (Stock Out) -->
+  <div id="stockOutModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+      <div class="bg-amber-700 text-white px-6 py-4 flex justify-between items-center">
+        <h3 class="font-bold text-base flex items-center gap-2">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Rekod Pengeluaran Stok
+        </h3>
+        <button onclick="closeStockOutModal()" class="text-amber-200 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <form id="stockOutForm" onsubmit="handleStockOut(event)" class="p-6 space-y-4">
+        <input type="hidden" id="stockOutItemId">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500">Nama Item</label>
+          <p id="stockOutItemName" class="font-bold text-slate-800 text-sm mt-0.5">-</p>
+          <p id="stockOutItemBalance" class="text-xs text-emerald-700 font-semibold mt-1">Baki sedia ada: 0</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Tarikh Keluar *</label>
+            <input type="date" id="stockOutDate" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Bil. Dikeluarkan *</label>
+            <input type="number" id="stockOutQty" min="1" required placeholder="1" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Tujuan / Stesen Ujian *</label>
+          <input type="text" id="stockOutReason" required placeholder="Cth: Bancuhan BFMP Malaria / Ujian FEC" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Petugas / JTMP *</label>
+          <input type="text" id="stockOutUser" required placeholder="Cth: JTMP Sarah" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+        </div>
+
+        <div class="pt-3 border-t flex justify-end gap-2">
+          <button type="button" onclick="closeStockOutModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium hover:bg-slate-100 transition">Batal</button>
+          <button type="submit" class="px-5 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-lg text-sm font-medium shadow transition">Tolak Stok</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Skrip JavaScript Logik Penuh -->
+  <script>
+    // Data contoh permulaan untuk Seksyen Parasitologi
+    const initialParasitologyData = [
+      {
+        id: "PAR-01",
+        name: "Giemsa Stain Solution (Merck 1L)",
+        category: "Pewarna (Stains)",
+        lot: "GMS-8812",
+        dateIn: "2026-08-10",
+        qtyIn: 6,
+        qtyOut: 2,
+        dateOut: "2026-10-15",
+        minThreshold: 2,
+        expiry: "2028-06-30",
+        location: "Almari Gelap Pewarnaan",
+        remarks: "Untuk filem darah BFMP malaria"
+      },
+      {
+        id: "PAR-02",
+        name: "Formalin 10% Neutral Buffered (2.5L)",
+        category: "Fiksasi / Kimia",
+        lot: "FM-3301",
+        dateIn: "2026-09-01",
+        qtyIn: 10,
+        qtyOut: 8,
+        dateOut: "2026-10-24",
+        minThreshold: 3,
+        expiry: "2027-11-15",
+        location: "Stor Bahan Kimia Rak B",
+        remarks: "Kaedah Formol-Ether stool concentration"
+      },
+      {
+        id: "PAR-03",
+        name: "Malaria Pf/Pv Antigen Rapid Test (25 tests)",
+        category: "Kit Pantas (RDT)",
+        lot: "MAL-9014",
+        dateIn: "2026-09-20",
+        qtyIn: 8,
+        qtyOut: 6,
+        dateOut: "2026-10-26",
+        minThreshold: 3,
+        expiry: "2026-11-28", // Amaran < 30 hari
+        location: "Peti Simpanan 15-25°C",
+        remarks: "Kegunaan STAT di On-Call"
+      },
+      {
+        id: "PAR-04",
+        name: "Microscope Slides Frosted End (72 pcs/box)",
+        category: "Konsumabel",
+        lot: "SL-2026-01",
+        dateIn: "2026-10-01",
+        qtyIn: 20,
+        qtyOut: 5,
+        dateOut: "2026-10-20",
+        minThreshold: 5,
+        expiry: "2030-01-01",
+        location: "Laci Alatan 1",
+        remarks: "Slaid smear tebal & nipis"
+      }
+    ];
+
+    let inventory = JSON.parse(localStorage.getItem('parasitology_stock_db')) || initialParasitologyData;
+
+    function saveAndRender() {
+      localStorage.setItem('parasitology_stock_db', JSON.stringify(inventory));
+      renderTable();
+    }
+
+    function calculateBalance(item) {
+      return Number(item.qtyIn) - Number(item.qtyOut || 0);
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('inventoryTableBody');
+      tbody.innerHTML = '';
+
+      let lowStockCount = 0;
+      let nearExpiryCount = 0;
+      let totalStockSum = 0;
+      const today = new Date();
+
+      inventory.forEach(item => {
+        const balance = calculateBalance(item);
+        totalStockSum += balance;
+
+        const isLow = balance <= Number(item.minThreshold);
+        if (isLow) lowStockCount++;
+
+        const expDate = new Date(item.expiry);
+        const daysDiff = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+        const isNearOrExpired = daysDiff <= 30;
+        if (isNearOrExpired) nearExpiryCount++;
+
+        let expiryBadge = `<span class="text-xs text-slate-600 font-mono">${item.expiry}</span>`;
+        if (daysDiff < 0) {
+          expiryBadge += `<br><span class="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] bg-rose-100 text-rose-700 font-bold">LUPUT</span>`;
+        } else if (daysDiff <= 30) {
+          expiryBadge += `<br><span class="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 font-semibold">${daysDiff} hari lagi</span>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition border-b border-slate-100 text-xs sm:text-sm";
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-semibold text-slate-800">
+            <div>${item.name}</div>
+            <div class="text-xs text-slate-400 font-normal"><i class="fa-solid fa-location-dot mr-1"></i>${item.location || 'Tiada tetapan rak'}</div>
+          </td>
+          <td class="py-3 px-4">
+            <span class="inline-block px-2 py-0.5 bg-slate-100 rounded text-xs text-slate-700 font-medium">${item.category}</span>
+            <div class="font-mono text-xs text-slate-500 mt-1">Lot: ${item.lot}</div>
+          </td>
+          <td class="py-3 px-4 text-slate-600 font-mono text-xs">${item.dateIn}</td>
+          <td class="py-3 px-4 text-center font-bold text-emerald-700 bg-emerald-50/40">${item.qtyIn}</td>
+          <td class="py-3 px-4 text-center font-bold text-amber-700 bg-amber-50/40">${item.qtyOut || 0}</td>
+          <td class="py-3 px-4 text-center">
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold ${isLow ? 'bg-rose-100 text-rose-700 border border-rose-200' : 'bg-slate-100 text-slate-800'}">
+              ${balance}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-slate-600 font-mono text-xs">${item.dateOut || '-'}</td>
+          <td class="py-3 px-4">${expiryBadge}</td>
+          <td class="py-3 px-4 text-center">
+            <div class="flex items-center justify-center gap-1.5">
+              <button onclick="openStockOutModal('${item.id}')" title="Keluarkan Stok" class="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs flex items-center gap-1 transition">
+                <i class="fa-solid fa-minus"></i> Keluar
+              </button>
+              <button onclick="deleteItem('${item.id}')" title="Padam Item" class="p-1.5 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Kemaskini statistik kad
+      document.getElementById('stat-total-items').textContent = inventory.length;
+      document.getElementById('stat-low-stock').textContent = lowStockCount;
+      document.getElementById('stat-near-expiry').textContent = nearExpiryCount;
+      document.getElementById('stat-total-stock-count').textContent = totalStockSum + " unit";
+
+      filterInventory();
+    }
+
+    // Modal Tambah Stok
+    function openModal() {
+      document.getElementById('stockForm').reset();
+      document.getElementById('itemDateIn').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('stockModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('stockModal').classList.add('hidden');
+    }
+
+    function saveStock(e) {
+      e.preventDefault();
+      const newItem = {
+        id: "PAR-" + Date.now().toString().slice(-5),
+        name: document.getElementById('itemName').value,
+        category: document.getElementById('itemCategory').value,
+        lot: document.getElementById('itemLot').value,
+        dateIn: document.getElementById('itemDateIn').value,
+        qtyIn: parseInt(document.getElementById('itemQtyIn').value, 10),
+        qtyOut: 0,
+        dateOut: "-",
+        minThreshold: parseInt(document.getElementById('itemMinThreshold').value, 10),
+        expiry: document.getElementById('itemExpiry').value,
+        location: document.getElementById('itemLocation').value,
+        remarks: document.getElementById('itemRemarks').value
+      };
+
+      inventory.unshift(newItem);
+      saveAndRender();
+      closeModal();
+    }
+
+    // Modal Keluar Stok
+    function openStockOutModal(id) {
+      const item = inventory.find(i => i.id === id);
+      if (!item) return;
+
+      const currentBalance = calculateBalance(item);
+      if (currentBalance <= 0) {
+        alert('Amaran: Baki stok item ini telah kosong (0). Tiada baki untuk dikeluarkan.');
+        return;
+      }
+
+      document.getElementById('stockOutForm').reset();
+      document.getElementById('stockOutItemId').value = item.id;
+      document.getElementById('stockOutItemName').textContent = item.name + " (" + item.lot + ")";
+      document.getElementById('stockOutItemBalance').textContent = "Baki sedia ada: " + currentBalance + " unit";
+      document.getElementById('stockOutDate').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('stockOutQty').max = currentBalance;
+
+      document.getElementById('stockOutModal').classList.remove('hidden');
+    }
+
+    function closeStockOutModal() {
+      document.getElementById('stockOutModal').classList.add('hidden');
+    }
+
+    function handleStockOut(e) {
+      e.preventDefault();
+      const id = document.getElementById('stockOutItemId').value;
+      const deductQty = parseInt(document.getElementById('stockOutQty').value, 10);
+      const outDate = document.getElementById('stockOutDate').value;
+      const reason = document.getElementById('stockOutReason').value;
+      const user = document.getElementById('stockOutUser').value;
+
+      const item = inventory.find(i => i.id === id);
+      if (!item) return;
+
+      const currentBalance = calculateBalance(item);
+      if (deductQty > currentBalance) {
+        alert('Kuantiti keluar melebihi baki stok semasa!');
+        return;
+      }
+
+      item.qtyOut = Number(item.qtyOut || 0) + deductQty;
+      item.dateOut = outDate;
+      item.remarks = `Keluar ${deductQty} unit pada ${outDate} untuk ${reason} oleh ${user}`;
+
+      saveAndRender();
+      closeStockOutModal();
+    }
+
+    function deleteItem(id) {
+      if (confirm('Adakah anda pasti mahu memadamkan rekod item ini?')) {
+        inventory = inventory.filter(i => i.id !== id);
+        saveAndRender();
+      }
+    }
+
+    function filterInventory() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const cat = document.getElementById('filterCategory').value;
+      const rows = document.querySelectorAll('#inventoryTableBody tr');
+
+      let visible = 0;
+      rows.forEach(r => {
+        const text = r.innerText.toLowerCase();
+        const matchSearch = text.includes(query);
+        const matchCat = cat === '' || text.includes(cat.toLowerCase());
+
+        if (matchSearch && matchCat) {
+          r.style.display = '';
+          visible++;
+        } else {
+          r.style.display = 'none';
+        }
+      });
+
+      document.getElementById('noDataFound').style.display = visible === 0 ? 'block' : 'none';
+    }
+
+    function exportToCSV() {
+      if (inventory.length === 0) {
+        alert('Tiada data untuk dieksport.');
+        return;
+      }
+
+      let csv = "ID,Nama Item,Kategori,No Lot,Tarikh Masuk,Jumlah Stok Masuk,Tarikh Keluar Terkini,Jumlah Keluar,Baki Semasa,Tarikh Luput,Lokasi,Catatan\n";
+      inventory.forEach(i => {
+        const bal = calculateBalance(i);
+        csv += `"${i.id}","${i.name}","${i.category}","${i.lot}","${i.dateIn}","${i.qtyIn}","${i.dateOut || '-'}","${i.qtyOut || 0}","${bal}","${i.expiry}","${i.location || ''}","${i.remarks || ''}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Rekod_Stok_Parasitologi_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    window.onload = renderTable;
+  </script>
+</body>
+</html>
